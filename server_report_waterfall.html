@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Server Report Waterfall</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #050608; }
+    body { color: #d8ffe1; font-family: Consolas, "Cascadia Mono", "Courier New", monospace; }
+    .stage {
+      position: fixed;
+      inset: 0;
+      padding: 34px 42px;
+      background:
+        radial-gradient(circle at 17% 15%, rgba(72, 255, 142, 0.12), transparent 34%),
+        radial-gradient(circle at 84% 74%, rgba(45, 180, 255, 0.10), transparent 36%),
+        linear-gradient(180deg, #06080b, #030405 66%, #080b0d);
+    }
+    .terminal {
+      position: absolute;
+      inset: 34px 42px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      line-height: 1.28;
+      font-size: 17px;
+      filter: blur(1.75px);
+      text-shadow: 0 0 8px rgba(80, 255, 140, 0.55), 0 0 18px rgba(40, 255, 130, 0.20);
+      transform: scale(1.015);
+      padding-right: 18px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(141, 255, 173, 0.65) rgba(255, 255, 255, 0.08);
+    }
+    .terminal::-webkit-scrollbar { width: 10px; }
+    .terminal::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.08); border-radius: 999px; }
+    .terminal::-webkit-scrollbar-thumb {
+      background: rgba(141, 255, 173, 0.65);
+      border-radius: 999px;
+      box-shadow: 0 0 12px rgba(141, 255, 173, 0.35);
+    }
+    .terminal::-webkit-scrollbar-thumb:hover { background: rgba(141, 255, 173, 0.9); }
+    .scanlines {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.035) 0, rgba(255,255,255,0.035) 1px, transparent 1px, transparent 4px);
+      mix-blend-mode: overlay;
+      opacity: 0.35;
+    }
+    .vignette { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px rgba(0,0,0,0.88); }
+    .hud {
+      position: fixed;
+      top: 16px;
+      right: 22px;
+      color: rgba(216, 255, 225, 0.72);
+      font-size: 12px;
+      letter-spacing: 0;
+      filter: blur(0.7px);
+    }
+    .red { color: #ff6b6b; }
+    .yellow { color: #ffe66d; }
+    .green { color: #8dffad; }
+    .cyan { color: #73e8ff; }
+  </style>
+</head>
+<body>
+  <div class="stage"><div class="terminal" id="terminal"></div></div>
+  <div class="hud">SERVER REPORT WATERFALL | REAL CSS BLUR | OUTPUT: FLEET HEALTH AUDIT</div>
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <script>
+    const terminal = document.getElementById("terminal");
+    const lines = [
+      ["cyan", "C:\\fleet\\prod> open server-report --fleet edge-api --region global"],
+      ["green", "[00:00.001] report console attached"],
+      ["green", "[00:00.037] operator context: production-readonly"],
+      ["green", "[00:00.074] report id: SRV-11842"],
+      ["", "[00:00.112] fleet: edge-api"],
+      ["", "[00:00.149] regions: iad, sfo, dfw, fra, sin, nrt, syd"],
+      ["", "[00:00.188] window: last 60 minutes"],
+      ["yellow", "[00:00.225] mode: deep health report"],
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> collect fleet inventory"]
+    ];
+
+    const regions = ["iad", "sfo", "dfw", "fra", "sin", "nrt", "syd"];
+    const roles = ["api-gateway", "session-api", "rag-api", "asset-edge", "job-worker", "webhook-ingress"];
+    const hosts = [];
+
+    for (let i = 1; i <= 90; i++) {
+      const region = regions[i % regions.length];
+      const role = roles[i % roles.length];
+      const host = `${region}-${role}-${String(i).padStart(3, "0")}`;
+      hosts.push({ host, region, role });
+      const cpu = 18 + Math.floor(Math.random() * 62);
+      const mem = 34 + Math.floor(Math.random() * 51);
+      const disk = 22 + Math.floor(Math.random() * 48);
+      const color = cpu > 72 || mem > 78 ? "yellow" : "green";
+      lines.push([color, `[INVENTORY ${String(i).padStart(3, "0")}] host=${host} role=${role} region=${region} cpu=${cpu}% mem=${mem}% disk=${disk}% status=online`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> summarize traffic and latency"]);
+    for (let i = 1; i <= 78; i++) {
+      const region = regions[i % regions.length];
+      const rps = 120 + Math.floor(Math.random() * 1280);
+      const p50 = 22 + Math.floor(Math.random() * 54);
+      const p95 = 88 + Math.floor(Math.random() * 210);
+      const p99 = p95 + 70 + Math.floor(Math.random() * 360);
+      const err = (Math.random() * 0.18).toFixed(2);
+      lines.push([p95 > 240 ? "yellow" : "green", `[TRAFFIC ${String(i).padStart(3, "0")}] region=${region} rps=${rps} p50=${p50}ms p95=${p95}ms p99=${p99}ms error_rate=${err}%`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect cpu saturation samples"]);
+    for (let i = 1; i <= 72; i++) {
+      const h = hosts[i % hosts.length];
+      const user = 18 + Math.floor(Math.random() * 56);
+      const system = 4 + Math.floor(Math.random() * 18);
+      const iowait = Math.floor(Math.random() * 12);
+      const steal = Math.floor(Math.random() * 4);
+      const total = user + system + iowait + steal;
+      lines.push([total > 82 ? "yellow" : "green", `[CPU ${String(i).padStart(3, "0")}] host=${h.host} user=${user}% system=${system}% iowait=${iowait}% steal=${steal}% total=${total}%`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect memory and heap pressure"]);
+    for (let i = 1; i <= 70; i++) {
+      const h = hosts[(i * 3) % hosts.length];
+      const rss = 420 + Math.floor(Math.random() * 2400);
+      const heap = 180 + Math.floor(Math.random() * 980);
+      const gc = 3 + Math.floor(Math.random() * 42);
+      const cache = 256 + Math.floor(Math.random() * 1800);
+      lines.push([heap > 950 || gc > 36 ? "yellow" : "green", `[MEM ${String(i).padStart(3, "0")}] host=${h.host} rss=${rss}MB heap=${heap}MB page_cache=${cache}MB gc_pause_p95=${gc}ms`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect disk and filesystem health"]);
+    const mounts = ["/", "/var/log", "/var/lib/app", "/tmp", "/mnt/cache"];
+    for (let i = 1; i <= 62; i++) {
+      const h = hosts[(i * 5) % hosts.length];
+      const mount = mounts[i % mounts.length];
+      const used = 28 + Math.floor(Math.random() * 58);
+      const inode = 12 + Math.floor(Math.random() * 44);
+      const read = 12 + Math.floor(Math.random() * 220);
+      const write = 8 + Math.floor(Math.random() * 180);
+      lines.push([used > 82 || inode > 50 ? "yellow" : "green", `[DISK ${String(i).padStart(3, "0")}] host=${h.host} mount=${mount} used=${used}% inode=${inode}% read=${read}MB/s write=${write}MB/s`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect network health"]);
+    for (let i = 1; i <= 72; i++) {
+      const h = hosts[(i * 7) % hosts.length];
+      const tx = 20 + Math.floor(Math.random() * 880);
+      const rx = 18 + Math.floor(Math.random() * 920);
+      const retrans = Math.floor(Math.random() * 18);
+      const conn = 700 + Math.floor(Math.random() * 9800);
+      lines.push([retrans > 12 ? "yellow" : "green", `[NET ${String(i).padStart(3, "0")}] host=${h.host} tx=${tx}Mbps rx=${rx}Mbps retrans=${retrans}/min active_connections=${conn}`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect load balancer target health"]);
+    for (let i = 1; i <= 52; i++) {
+      const h = hosts[(i * 11) % hosts.length];
+      const active = 80 + Math.floor(Math.random() * 1120);
+      const queue = Math.floor(Math.random() * 40);
+      const fail = Math.floor(Math.random() * 3);
+      lines.push([queue > 30 || fail > 1 ? "yellow" : "green", `[LB ${String(i).padStart(3, "0")}] target=${h.host} active=${active} queue_depth=${queue} health_failures=${fail} state=serving`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect process supervisors"]);
+    for (let i = 1; i <= 58; i++) {
+      const h = hosts[(i * 13) % hosts.length];
+      const uptime = 20 + Math.floor(Math.random() * 420);
+      const restarts = Math.floor(Math.random() * 2);
+      const fd = 200 + Math.floor(Math.random() * 5200);
+      const threads = 18 + Math.floor(Math.random() * 210);
+      lines.push(["green", `[PROC ${String(i).padStart(3, "0")}] host=${h.host} service=${h.role} uptime=${uptime}h restarts=${restarts} open_fds=${fd} threads=${threads}`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> inspect error logs"]);
+    const errorTypes = ["timeout_budget_exceeded", "client_closed_request", "upstream_retry", "rate_limited", "cache_miss_spike", "json_parse_rejected"];
+    for (let i = 1; i <= 78; i++) {
+      const h = hosts[(i * 17) % hosts.length];
+      const type = errorTypes[i % errorTypes.length];
+      const count = Math.floor(Math.random() * 18);
+      const perMin = (Math.random() * 1.8).toFixed(2);
+      lines.push([count > 12 ? "yellow" : "green", `[LOG ${String(i).padStart(3, "0")}] host=${h.host} type=${type} count=${count} rate=${perMin}/min action=tracked`]);
+    }
+
+    lines.push(
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> inspect security and policy status"],
+      ["green", "[SECURITY] tls_min_version=1.2 tls13_enabled=true"],
+      ["green", "[SECURITY] hsts=max-age=31536000 includeSubDomains"],
+      ["green", "[SECURITY] waf_ruleset=managed+custom status=active"],
+      ["green", "[SECURITY] bot_challenge_policy=active"],
+      ["green", "[SECURITY] origin_access=locked_to_edge"],
+      ["green", "[SECURITY] secret_scan=clean"],
+      ["green", "[SECURITY] dependency_audit=0 critical 0 high"],
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> inspect cache report"]
+    );
+
+    const cacheRoutes = ["/", "/api/session", "/api/rag", "/assets/*", "/health", "/pricing", "/docs/*"];
+    for (let i = 1; i <= 48; i++) {
+      const route = cacheRoutes[i % cacheRoutes.length];
+      const hit = route.includes("api") ? 0 : 76 + Math.floor(Math.random() * 23);
+      const ttl = route.includes("assets") ? 31536000 : route.includes("api") ? 0 : 60;
+      lines.push([hit < 60 && ttl > 0 ? "yellow" : "green", `[CACHE ${String(i).padStart(3, "0")}] route=${route} hit_rate=${hit}% ttl=${ttl}s status=valid`]);
+    }
+
+    lines.push(["cyan", ""], ["cyan", "C:\\fleet\\prod> run synthetic probes"]);
+    const probes = ["health", "session-create", "rag-request", "static-asset", "auth-expiry", "cors-preflight", "webhook-verify"];
+    for (let i = 1; i <= 96; i++) {
+      const region = regions[i % regions.length];
+      const probe = probes[i % probes.length];
+      const latency = 28 + Math.floor(Math.random() * 260);
+      const status = probe === "cors-preflight" ? 204 : 200;
+      lines.push([latency > 240 ? "yellow" : "green", `[PROBE ${String(i).padStart(3, "0")}] region=${region} check=${probe} status=${status} latency=${latency}ms result=pass`]);
+    }
+
+    lines.push(
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> analyze anomaly windows"],
+      ["green", "[ANOMALY] 00:00-00:10 baseline stable"],
+      ["green", "[ANOMALY] 00:10-00:20 traffic normal"],
+      ["yellow", "[ANOMALY] 00:20-00:30 sfo p95 elevated by 11%"],
+      ["green", "[ANOMALY] 00:30-00:40 recovery without intervention"],
+      ["green", "[ANOMALY] 00:40-00:50 all regions inside SLO"],
+      ["green", "[ANOMALY] 00:50-01:00 all regions inside SLO"],
+      ["yellow", "[ANOMALY] conclusion: minor sfo latency blip, no incident threshold crossed"],
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> compare server report against SLO"],
+      ["green", "[SLO] availability target=99.95% observed=99.998% status=pass"],
+      ["green", "[SLO] p95 latency target<300ms observed=188ms status=pass"],
+      ["green", "[SLO] error rate target<0.5% observed=0.06% status=pass"],
+      ["green", "[SLO] saturation target<85% observed=76% status=pass"],
+      ["green", "[SLO] probe success target>99.5% observed=100% status=pass"],
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> produce remediation notes"],
+      ["green", "[NOTE] reduce sfo job-worker concurrency during traffic peaks"],
+      ["green", "[NOTE] increase alert sensitivity for retransmit spikes"],
+      ["green", "[NOTE] keep cache policy unchanged for static assets"],
+      ["green", "[NOTE] rotate two aging hosts during next maintenance window"],
+      ["green", "[NOTE] no emergency deploy required"],
+      ["cyan", ""],
+      ["cyan", "C:\\fleet\\prod> close server report SRV-11842"],
+      ["green", "[REPORT] fleet=edge-api"],
+      ["green", "[REPORT] health=operational"],
+      ["green", "[REPORT] critical_findings=0"],
+      ["yellow", "[REPORT] minor_findings=3"],
+      ["green", "[REPORT] customer_impact=none"],
+      ["green", "[REPORT] rendered_lines=600+"],
+      ["green", "[REPORT] status=complete"],
+      ["green", "C:\\fleet\\prod> _"]
+    );
+
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index >= lines.length) {
+        clearInterval(timer);
+        return;
+      }
+      const item = lines[index];
+      const span = document.createElement("span");
+      span.className = item[0];
+      span.textContent = item[1] + "\n";
+      terminal.appendChild(span);
+      terminal.scrollTop = terminal.scrollHeight;
+      index++;
+    }, 18);
+  </script>
+</body>
+</html>
